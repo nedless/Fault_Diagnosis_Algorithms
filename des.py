@@ -151,7 +151,7 @@ class des:
             for j in range(len(keys)):
                 new_row.append(self.inc_matrix[int(corresp[k])-1][int(corresp[str(j+1)])-1])
             
-            new_inc_matrix.append(new_row)#self.inc_matrix[int(corresp[k])-1][:])
+            new_inc_matrix.append(new_row)
         
         G_topsorted = des(new_inc_matrix, 'G_topsorted')
         return G_topsorted
