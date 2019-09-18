@@ -7,12 +7,14 @@ import linecache
 
 
 class des:
-    def __init__(self, inc_matrix, label):        
+    def __init__(self, inc_matrix, label, marked):        
         self.inc_matrix = inc_matrix
         self.label = label
+        self.marked = marked
+
         self.automate = self.define_des()
         self.generate_figure(self.automate)
-
+        
         #deepth-first search
         self.time = 0
         self.color = []
@@ -22,12 +24,21 @@ class des:
         return self.label + '\n'  + str(self.inc_matrix)
 
     def generate_figure(self, G,sufix='', layout='dot'):                
-        A = to_agraph(G) 
+        A = to_agraph(G)
+        A.node_attr['shape']='circle'
+        for mark in self.marked:
+            m = A.get_node(mark)
+            m.attr['shape'] = 'doublecircle'
         A.layout(layout)                                                                 
         A.draw(self.label + sufix + '.png')
     
     def generate_strongly_figure(self,strongList,layout='dot'):
         A = to_agraph(self.automate) 
+        A.node_attr['shape']='circle'
+
+        for mark in self.marked:
+            m = A.get_node(mark)
+            m.attr['shape'] = 'doublecircle'            
         for con in strongList:
             color = linecache.getline('color_list.txt', randint(1, 129))[:-1]
             for v in con:
@@ -135,9 +146,13 @@ class des:
         for i in range(len(n_time)):
             mapping[str(i+1)] = str(i+1) + '('+ n_time[i] +')'
         
+        marked_bckp = self.marked[:]
+        for j in range(len(self.marked)):
+            self.marked[j] = mapping[self.marked[j]]  
+        
         G_dfs = nx.relabel_nodes(self.automate, mapping)
         self.generate_figure(G=G_dfs, sufix='_dfs')
-
+        self.marked = marked_bckp[:]
         r = (G_dfs, n_time)
         return r
 
@@ -148,14 +163,20 @@ class des:
         for n in r[1]:
             top.append(n[n.index('/')+1:])
         
-        sort = top[:]
-        sort.sort(reverse=True)
+        s = top[:]
+        s.sort()
+
+        marked = self.marked
 
         corresp = {}
-        for i in range(len(sort)):
-            k = top.index(sort[i])
+        for i in range(len(s)):
+            k = top.index(s[i])
             corresp[str(i+1)] = str(k+1)
-        
+
+        rev_corresp = inv_map = {v: k for k, v in corresp.items()}
+        for j in range(len(marked)):
+            marked[j] = rev_corresp[marked[j]]
+
         keys = [k for k in corresp.keys()]
         
         keys.sort()
@@ -168,7 +189,7 @@ class des:
             
             new_inc_matrix.append(new_row)
         
-        G_topsorted = des(new_inc_matrix, 'G_topsorted')
+        G_topsorted = des(new_inc_matrix, 'G_topsorted', marked)
         return G_topsorted
 
     def strongly_connected(self):
