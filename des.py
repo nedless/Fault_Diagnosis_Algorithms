@@ -31,7 +31,8 @@ class des:
         return self.label
     def get_state_list(self):
         return self.states
-
+    def get_marked(self):
+        return self.marked
     def generate_figure(self, G,sufix='', label='',layout='dot'):                
         A = to_agraph(G)
         if label == '':
@@ -181,14 +182,14 @@ class des:
             top.append(n[n.index('/')+1:])
         
         s = top[:]
-        s.sort()
+        s.sort(reverse=True)
 
         marked = self.marked
 
         corresp = {}
         for i in range(len(s)):
             k = top.index(s[i])
-            corresp[self.states[i]] = self.states[k]
+            corresp[str(i)] = self.states[k]
 
         rev_corresp = inv_map = {v: k for k, v in corresp.items()}
         for j in range(len(marked)):
@@ -202,11 +203,11 @@ class des:
         for k in keys:
             new_row = []
             for j in range(len(keys)):
-                new_row.append(self.inc_matrix[int(corresp[k])-1][int(corresp[str(j+1)])-1])
+                new_row.append(self.inc_matrix[self.states.index(corresp[k])][self.states.index(corresp[str(j)])])
             
             new_inc_matrix.append(new_row)
         
-        G_topsorted = des(new_inc_matrix, 'G_topsorted', marked)
+        G_topsorted = des(new_inc_matrix, keys, 'G_topsorted', marked)
         return G_topsorted
 
     def strongly_connected(self):
@@ -291,10 +292,10 @@ class des:
         CoAc = []
         for node in all_nodes:
             if not(node in CoAc):
-                node_Ac = self.get_accessible_part(node,False)                
+                node_Ac = self.get_accessible_part(self.states.index(node),False)                
                 for mark in self.marked:
                     if mark in node_Ac:
-                        CoAc.append(mark)                        
+                        CoAc.append(node)                        
                         co_chk = True
                         break
                         
@@ -306,20 +307,7 @@ class des:
             self.generate_accessible_figure(noCoAc, self.automate, 'CoAc('+self.label+')')
 
         return CoAc
-
-    def get_sigma(self, automate = ""):
-        if automate == "":
-            automate = self.automate
-
-        events = nx.get_edge_attributes(automate, 'label')
-
-        sigma = ""
-        for e in events.values():
-            sigma += e + ","
-        sigma = sigma[:-1]
-        sigma = list(dict.fromkeys(sigma.split(","))) #removing duplicates
-        sigma.sort()
-        return sigma
+    
     
     def __mul__(D1, D2):
         noAc_G1 = D1.get_accessible_part(draw = False, rev = True)
@@ -340,16 +328,49 @@ class des:
         inv_map = {v: k for k, v in mapping.items()}
 
         
-
-        actual_node = [D1.get_state_list[0],D2.get_state_list[0]]
+        G1_states = D1.get_state_list()
+        G2_states = D2.get_state_list()
+        actual_node = [G1_states[0],G2_states[0]]
 
         G_prod.add_node(str(actual_node))
         G_prod = f.iterat(G_prod,G1, G2, actual_node)
 
 
+        settings= f.generate_incmatrix_from_automate(G_prod, D1,D2)
+        P = des(settings[0], settings[1], \
+             D1.get_label() + '*' + D2.get_label(), settings[2])
 
-        P = des(f.generate_incmatrix_from_automate(G_prod), \
-             D1.get_label() + '*' + D2.get_label, [])
+        return P
+
+    def __floordiv__(D1, D2):
+            
+        noAc_G1 = D1.get_accessible_part(draw = False, rev = True)
+        noAc_G2 = D2.get_accessible_part(draw = False, rev = True)
+        
+        G1 = D1.get_automate()
+        G2 = D2.get_automate()
+
+        G1.remove_nodes_from(noAc_G1)
+        G2.remove_nodes_from(noAc_G2)
+
+        sigma_G1 = f.get_sigma(G1)
+        sigma_G2 = f.get_sigma(G2)
+        sigma_sync = [value for value in sigma_G1 if value in sigma_G2]
+
+        G_parallel = nx.DiGraph()
+        mapping = nx.get_edge_attributes(G1, 'label')
+        inv_map = {v: k for k, v in mapping.items()}
+        
+        G1_states = D1.get_state_list()
+        G2_states = D2.get_state_list()
+        actual_node = [G1_states[0],G2_states[0]]
+
+        G_parallel.add_node(str(actual_node))
+        G_parallel = f.iterat_parallel(G_parallel.copy(),G1, G2, sigma_sync, actual_node)
+
+        settings= f.generate_incmatrix_from_automate(G_parallel, D1,D2)
+        P = des(settings[0], settings[1], \
+             D1.get_label() + '//' + D2.get_label(), settings[2])
 
         return P
         
