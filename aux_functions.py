@@ -127,16 +127,16 @@ def iterat(G_prod, G1, G2, actual_node):
         return G_prod
 
     G1_map = f.get_adjacencies(G1, actual_node[0])
-    G2_map = f.get_adjacencies(G2, actual_node[1])
-    G1_map = {v: k for k, v in G1_map.items()}
-    G2_map = {v: k for k, v in G2_map.items()}
+    G2_map = f.get_adjacencies(G2, actual_node[1])    
 
     for ev in ev_common:
         next_node = [G1_map[ev], G2_map[ev]]
-        try:
+        if not (str(actual_node),str(next_node)) in list(G_prod.edges()):
             G_prod.add_edge(str(actual_node),str(next_node), label = ev)
-        except TypeError:
+        else:
             label = nx.get_edge_attributes(G_prod, 'label')[(str(actual_node),str(next_node))]
+            if ev == label:
+                continue
             G_prod.remove_edge(str(actual_node),str(next_node))
             G_prod.add_edge(str(actual_node),str(next_node), label = label+','+ev)
 
