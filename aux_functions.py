@@ -111,9 +111,10 @@ def get_adjacencies(G, node):
     l =[]
     for n in G_neigh:
         l.append(n)
-    x = []
-    for i in l:
-        x = list(set(x[:]).union(set(i.split(","))))
+    x=[]
+    x = list(set(x[:]).union(set(l[:])))
+    #for i in l:
+    #    x = list(set(x[:]).union(set(i.split(","))))
     for n in x: 
         if mapping[(node,n)].find(',')>-1:
             for k in mapping[(node,n)].split(','):

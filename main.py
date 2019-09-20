@@ -2,7 +2,10 @@ import aux_functions as f
 
 
 aut_list = f.load_input()
-Gd = aut_list[0]
+Gl = aut_list[0]
+Gl.verifier(['f'], [['c'],['b']])
+
+Gd = aut_list[1]
 Gd.Observer(['a','b','c'])
 # G.get_accessible_part()
 # G.get_coaccessible_part()

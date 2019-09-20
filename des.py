@@ -27,6 +27,8 @@ class des:
         return self.label + '\n'  + str(self.inc_matrix)
     def get_automate(self):
         return self.automate
+    def get_inc_matrix(self):
+        return self.inc_matrix
     def get_label(self):
         return self.label
     def get_state_list(self):
@@ -407,6 +409,81 @@ class des:
 
         return P
     
+    def build_fail_rotulator(self, fail_events):
+        events = ""
+        for ev in fail_events:
+            events += ev + ","
+        events = events[:-1]
+        return des([['0',events],['0',events]], ['N','Y'], 'Rotulator',[])
+
+    def verifier(self, fail_events, uo_events):
+        rot = self.build_fail_rotulator(fail_events)
+        G = des(self.inc_matrix,self.states,self.label,self.marked)
+        Gl = G // rot
+        Gn = self.generate_non_fail_automate(Gl)
+        Gf = self.generate_fail_automate(Gl)
+
+        Gn_r = []
+        for i in range(len(uo_events)):
+            Gr = Gn
+            inc_m = Gn.get_inc_matrix()[:]
+            for ev in uo_events[i]:
+                for x in inc_m:
+                    for s in range(len(x)):
+                        if x[s].find(ev)>-1:
+                            x[s] = x[s].replace(ev, ev+'_r'+str(i))
+
+                    
+            Gn_r.append(des(inc_m, Gn.get_state_list(), "G_N"+str(i), []))
+
+        Gn_p = Gn_r[0]
+        for g in Gn_r[1:]:
+            Gn_p = Gn_p // g
+        
+        Gv= Gn_p // Gf
+        Gv= des(Gv.get_inc_matrix(), Gv.get_state_list(), self.label+'_V',[])
+        Gv.generate_figure(Gv.get_automate(),shape='box')
+        return Gv
+
+
+    
+    def generate_non_fail_automate(self, D):
+        G = D.get_automate().copy()
+        nodes = list(G.nodes())
+        for n in nodes:
+            if n.find('Y') > -1:
+                G.remove_node(n)
+        noAc = self.get_accessible_part(draw = False, rev = True)
+        G.remove_nodes_from(noAc)        
+
+        settings = f.generate_incmatrix_for_obs_automate(G)
+        return des(settings[0], settings[1], self.label+'_N',[])
+    
+    def generate_fail_automate(self, D):
+        G = D.get_automate().copy()
+        nodes = list(G.nodes())
+
+        marked = []        
+        for n in nodes:
+            if n.find('Y') > -1:
+                marked.append(n)
+        
+        stt = D.get_state_list()
+        label = D.get_label()+'_f'
+
+        Gt = des(D.get_inc_matrix(), stt, label, marked[:])
+        CoAc = Gt.get_coaccessible_part(draw = False)
+
+        for n in nodes:
+            if not n in CoAc:
+                G.remove_node(n)
+                
+
+        settings = f.generate_incmatrix_for_obs_automate(G)
+        return des(settings[0], settings[1], self.label+'f',[])
+
+
+
 
         
     
