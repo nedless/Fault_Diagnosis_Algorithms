@@ -5,10 +5,11 @@ from networkx.drawing.nx_agraph import to_agraph
 from random import shuffle,randint
 import linecache
 import aux_functions as f
-
+from settings import *
 
 class des:
-
+    
+  #region CLASS_INICIALIZATION
     def __init__(self, inc_matrix, states, label, marked):        
         self.inc_matrix = inc_matrix
         self.states = states
@@ -23,27 +24,45 @@ class des:
         self.color = []
         self.n_time = []
 
+
+    def define_des(self):                        
+        G = nx.DiGraph()
+        for j in range(len(self.inc_matrix)):
+            for k in range(len(self.inc_matrix[j])):
+                if self.inc_matrix[j][k] != '0':
+                    G.add_edge(self.states[j], self.states[k], label = self.inc_matrix[j][k])
+        return G
+  #endregion
+
+  #region GET_METHODS
     def __repr__(self):        
         return self.label + '\n'  + str(self.inc_matrix)
     def get_automate(self):
         return self.automate
+    def get_inc_matrix(self):
+        return self.inc_matrix
     def get_label(self):
         return self.label
     def get_state_list(self):
         return self.states
-    def get_marked(self):
+    def get_marked(self):  
         return self.marked
-    def generate_figure(self, G,sufix='', label='',layout='dot'):                
+    def get_transpose(self):
+        inc_matrix_t = [list(i) for i in zip(*self.inc_matrix)]
+  #endregion
+
+  #region DRAW_METHODS
+    def generate_figure(self, G,sufix='', label='',layout='dot', shape='circle'):                
         A = to_agraph(G)
         if label == '':
             label = self.label
 
-        A.node_attr['shape']='circle'
+        A.node_attr['shape']= shape
         for mark in self.marked:
             m = A.get_node(mark)
             m.attr['shape'] = 'doublecircle'
         A.layout(layout)                                                                 
-        A.draw(label + sufix + '.png')
+        A.draw(PATH + label + sufix + '.png')
     
     def generate_strongly_figure(self,strongList,layout='dot'):
         A = to_agraph(self.automate) 
@@ -58,19 +77,23 @@ class des:
                 n = A.get_node(v)
                 n.attr['color']= color
         A.layout(layout)                                                                 
-        A.draw(self.label + '_strongly' + '.png')
-
-    def define_des(self):                        
-        G = nx.DiGraph()
-        for j in range(len(self.inc_matrix)):
-            for k in range(len(self.inc_matrix[j])):
-                if self.inc_matrix[j][k] != '0':
-                    G.add_edge(self.states[j], self.states[k], label = self.inc_matrix[j][k])
-        return G
+        A.draw(PATH + self.label + '_strongly' + '.png')
     
-    def get_transpose(self):
-        inc_matrix_t = [list(i) for i in zip(*self.inc_matrix)]
+    def generate_accessible_figure(self, noAc, G, label='',layout='dot'):        
+        A = to_agraph(G)
+        A.node_attr['shape']='circle'
+        for mark in self.marked:
+            m = A.get_node(mark)
+            m.attr['shape'] = 'doublecircle'
+        
+        A.remove_nodes_from(noAc)
 
+        A.layout(layout)                                                                 
+        A.draw(PATH + label + '.png')
+
+  #endregion
+
+  #region BREADTH_FIRST_SEARCH_METHODS
     def breadth_first_search(self, initial=0):
         color = []
         for i in range(len(self.inc_matrix)):
@@ -114,15 +137,21 @@ class des:
         
         mark_bckp = self.marked[:]
         for i in range(len(self.marked)):
-            self.marked[i] = mapping[self.marked[i]]
+            if self.marked[i].find("(")>-1:
+                index = self.marked[i].find("(")
+                self.marked[i] = mapping[self.marked[i][:index]]
+            else:    
+                self.marked[i] = mapping[self.marked[i]]
             
-        G_bfs = nx.relabel_nodes(self.automate, mapping)
+        G_bfs = nx.relabel_nodes(self.automate.copy(), mapping)
         self.generate_figure(G= G_bfs, sufix='_bfs')
         
         self.marked = mark_bckp[:]
         r = (G_bfs, result)
         return r
-    
+  #endregion
+
+  #region DEPTH_FIRST_SEARCH_METHODS
     def  deepth_first_search(self):
         self.color = []
         self.time = 0
@@ -174,6 +203,9 @@ class des:
         r = (G_dfs, n_time)
         return r
 
+  #endregion
+
+  #region TOPOLOGICAL_SORT_METHODS
     def top_sort(self):
         r = self.deepth_first_search()
         
@@ -209,7 +241,9 @@ class des:
         
         G_topsorted = des(new_inc_matrix, keys, 'G_topsorted', marked)
         return G_topsorted
-
+  #endregion
+  
+  #region STRONGLY_CONNECTED_METHODS
     def strongly_connected(self):
         stack = []
         for i in range(len(self.inc_matrix)):
@@ -254,6 +288,9 @@ class des:
                 self.fill_sort(j, stack)
         stack = stack.append(c)
     
+  #endregion
+  
+  #region ACCESSIBLE_PART_METHODS
     def get_accessible_part(self, initial = 0, draw = True, rev = False):
         #assuming that the initial node is the node '1'
         r = self.breadth_first_search(initial)
@@ -272,19 +309,9 @@ class des:
             return noAc
         return Ac
 
-        
-    def generate_accessible_figure(self, noAc, G, label='',layout='dot'):        
-        A = to_agraph(G)
-        A.node_attr['shape']='circle'
-        for mark in self.marked:
-            m = A.get_node(mark)
-            m.attr['shape'] = 'doublecircle'
-        
-        A.remove_nodes_from(noAc)
-
-        A.layout(layout)                                                                 
-        A.draw(label + '.png')
-
+  #endregion    
+    
+  #region COACCESSIBLE_PART_METHODS
     def get_coaccessible_part(self, draw = True):
         all_nodes = self.automate.nodes()
 
@@ -307,8 +334,10 @@ class des:
             self.generate_accessible_figure(noCoAc, self.automate, 'CoAc('+self.label+')')
 
         return CoAc
-    
-    
+        
+  #endregion
+
+  #region PRODUCT_COMPOSITION_METHODS
     def __mul__(D1, D2):
         noAc_G1 = D1.get_accessible_part(draw = False, rev = True)
         noAc_G2 = D2.get_accessible_part(draw = False, rev = True)
@@ -342,6 +371,9 @@ class des:
 
         return P
 
+  #endregion
+    
+  #region PARALLEL_COMPOSITION_METHODS
     def __floordiv__(D1, D2):
             
         noAc_G1 = D1.get_accessible_part(draw = False, rev = True)
@@ -370,9 +402,132 @@ class des:
 
         settings= f.generate_incmatrix_from_automate(G_parallel, D1,D2)
         P = des(settings[0], settings[1], \
-             D1.get_label() + '//' + D2.get_label(), settings[2])
+             D1.get_label() + '||' + D2.get_label(), settings[2])
 
         return P
+ 
+  #endregion
+
+  #region OBSERVER_METHODS
+    def Observer(self, sigma_o):        
+        noAc = self.get_accessible_part(draw = False, rev = True)
+        
+        G = self.get_automate()        
+        G.remove_nodes_from(noAc)        
+
+        sigma = f.get_sigma(G)
+        sigma_uo = []
+        for ev in sigma:
+            if not (ev in sigma_o):
+                sigma_uo.append(ev)
+
+        Obs = nx.DiGraph()
+        mapping = nx.get_edge_attributes(G, 'label')
+        inv_map = {v: k for k, v in mapping.items()}
+        
+        states = self.states
+        actual_node = [states[0]]
+
+        mapping = {}
+        for node in states:
+            mapping[node] = f.get_adjacencies(G, node)
+
+        Obs = f.iterat_observer(Obs.copy(),G, sigma_uo, mapping, actual_node, True)
+
+        settings= f.generate_incmatrix_for_obs_automate(Obs)
+
+        P = des(settings[0], settings[1], \
+             'Obs(' + self.label +')', [])
+        P.generate_figure(P.get_automate(), label='Obs(' + self.label +')',shape='box')
+
+        return P
+    
+  #endregion
+
+  #region VERIFIER_METHODS
+    def verifier(self, fail_events, uo_events):
+        rot = self.build_fail_rotulator(fail_events)
+        G = des(self.inc_matrix,self.states,self.label,self.marked)
+        Gl = G // rot
+        Gn = self.generate_non_fail_automate(Gl)
+        Gf = self.generate_fail_automate(Gl)
+
+        Gn_r = []
+        for i in range(len(uo_events)):
+            Gr = Gn
+            inc_m = Gn.get_inc_matrix()[:]
+            for ev in uo_events[i]:
+                for x in inc_m:
+                    for s in range(len(x)):
+                        if x[s].find(ev)>-1:
+                            x[s] = x[s].replace(ev, ev+'_r'+str(i))
+
+                    
+            Gn_r.append(des(inc_m, Gn.get_state_list(), "G_N"+str(i), []))
+
+        Gn_p = Gn_r[0]
+        for g in Gn_r[1:]:
+            Gn_p = Gn_p // g
+        
+        Gv= Gn_p // Gf
+        Gv= des(Gv.get_inc_matrix(), Gv.get_state_list(), self.label+'_V',[])
+        Gv.generate_figure(Gv.get_automate(),shape='box')
+        return Gv
+   
+    def build_fail_rotulator(self, fail_events):
+        events = ""
+        for ev in fail_events:
+            events += ev + ","
+        events = events[:-1]
+        return des([['0',events],['0',events]], ['N','Y'], 'Rotulator',[])
+
+    def generate_non_fail_automate(self, D):
+        G = D.get_automate().copy()
+        nodes = list(G.nodes())
+        for n in nodes:
+            if n.find('Y') > -1:
+                G.remove_node(n)
+        noAc = D.get_accessible_part(draw = False, rev = True)
+        G.remove_nodes_from(noAc)        
+
+        settings = f.generate_incmatrix_for_obs_automate(G)
+        return des(settings[0], settings[1], self.label+'_N',[])
+    
+    def generate_fail_automate(self, D):
+        G = D.get_automate().copy()
+        nodes = list(G.nodes())
+
+        marked = []        
+        for n in nodes:
+            if n.find('Y') > -1:
+                marked.append(n)
+        
+        stt = D.get_state_list()
+        label = D.get_label()+'_f'
+
+        Gt = des(D.get_inc_matrix(), stt, label, marked[:])
+        CoAc = Gt.get_coaccessible_part(draw = False)
+
+        for n in nodes:
+            if not n in CoAc:
+                G.remove_node(n)
+                
+
+        settings = f.generate_incmatrix_for_obs_automate(G)
+        return des(settings[0], settings[1], self.label+'f',[])
+
+  #endregion
+    
+    
+        
+    
+
+
+   
+
+
+
+
         
     
     
