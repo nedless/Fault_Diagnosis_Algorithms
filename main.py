@@ -2,7 +2,8 @@ import aux_functions as f
 
 
 aut_list = f.load_input()
-G = aut_list[3]
+Gd = aut_list[0]
+Gd.Observer(['a','b','c'])
 # G.get_accessible_part()
 # G.get_coaccessible_part()
 # G.strongly_connected()
@@ -11,10 +12,5 @@ G = aut_list[3]
 F1 = aut_list[0]
 F2 = aut_list[1]
 P = F1//F2
-
-
-
-
-
 
 print("testing changes for using git repository...")    

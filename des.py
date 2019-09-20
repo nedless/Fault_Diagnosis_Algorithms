@@ -33,12 +33,12 @@ class des:
         return self.states
     def get_marked(self):
         return self.marked
-    def generate_figure(self, G,sufix='', label='',layout='dot'):                
+    def generate_figure(self, G,sufix='', label='',layout='dot', shape='circle'):                
         A = to_agraph(G)
         if label == '':
             label = self.label
 
-        A.node_attr['shape']='circle'
+        A.node_attr['shape']= shape
         for mark in self.marked:
             m = A.get_node(mark)
             m.attr['shape'] = 'doublecircle'
@@ -370,9 +370,44 @@ class des:
 
         settings= f.generate_incmatrix_from_automate(G_parallel, D1,D2)
         P = des(settings[0], settings[1], \
-             D1.get_label() + '//' + D2.get_label(), settings[2])
+             D1.get_label() + '||' + D2.get_label(), settings[2])
 
         return P
+    
+    def Observer(self, sigma_o):        
+        noAc = self.get_accessible_part(draw = False, rev = True)
+        
+        G = self.get_automate()        
+        G.remove_nodes_from(noAc)        
+
+        sigma = f.get_sigma(G)
+        sigma_uo = []
+        for ev in sigma:
+            if not (ev in sigma_o):
+                sigma_uo.append(ev)
+
+        Obs = nx.DiGraph()
+        mapping = nx.get_edge_attributes(G, 'label')
+        inv_map = {v: k for k, v in mapping.items()}
+        
+        states = self.states
+        actual_node = [states[0]]
+
+        mapping = {}
+        for node in states:
+            mapping[node] = f.get_adjacencies(G, node)
+
+        Obs = f.iterat_observer(Obs.copy(),G, sigma_uo, mapping, actual_node)
+
+        settings= f.generate_incmatrix_for_obs_automate(Obs)
+
+        P = des(settings[0], settings[1], \
+             'Obs(' + self.label +')', [])
+        P.generate_figure(P.get_automate(), label='Obs(' + self.label +')',shape='box')
+
+        return P
+    
+
         
     
     

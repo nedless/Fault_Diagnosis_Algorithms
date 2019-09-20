@@ -74,6 +74,24 @@ def generate_incmatrix_from_automate(G_prod, P1, P2):
 
     return [new_m, n, marked]
 
+def generate_incmatrix_for_obs_automate(Obs):
+    n = [i for i in Obs.nodes()]
+    n.sort()
+    
+
+    inc_m = nx.adjacency_matrix(Obs,n).todense().tolist()
+    print(inc_m)
+    events_ref = nx.get_edge_attributes(Obs, 'label')
+
+    for i in [n for n in events_ref.keys()]:        
+        inc_m[n.index(i[0])][n.index(i[1])] = events_ref[i]
+    
+    new_m = []
+    for i in range(len(inc_m)):
+        new_m.append(['0' if x==0 else x for x in inc_m[i]])
+    return [new_m, n]
+
+
 def get_sigma(automate):        
         events = nx.get_edge_attributes(automate, 'label')
 
@@ -188,3 +206,54 @@ def iterat_parallel(G_parallel, G1, G2, sigma_sync, actual_node):
         G_parallel =  iterat_parallel(G_parallel.copy(), G1, G2, sigma_sync, next_node)
     
     return G_parallel
+
+def iterat_observer(Obs, G, sigma_uo, mapping, actual_nodes):
+    ev_possible = []    
+    for i in actual_nodes:
+        [ev_possible.append(x) for x in f.get_adjacencies_events(G, i)]
+        
+    if len(ev_possible) == 0:
+        return Obs
+
+    state = actual_nodes[:]
+    ev_obs_possible = []
+    for node in state:
+        ev_possible = f.get_adjacencies_events(G, node)
+    
+        for ev in ev_possible:
+            if (ev in sigma_uo):
+                if not mapping[node][ev] in state:
+                    state.append(mapping[node][ev])                
+            else:
+                if not ev in ev_obs_possible:
+                    ev_obs_possible.append(ev)
+    
+    Obs = f.compute_next_obs(Obs, ev_obs_possible, G, sigma_uo, mapping, state)
+    return Obs    
+    
+def compute_next_obs(Obs, ev_obs_possible, G, sigma_uo, mapping, state):
+            
+    for ev in ev_obs_possible:
+        actual_nodes = []
+        for node in state:
+            try:
+                actual_nodes.append(mapping[node][ev])
+            except Exception:
+                pass
+        if actual_nodes == []:
+            continue
+        
+        if not (str(state),str(actual_nodes)) in list(Obs.edges()):
+            Obs.add_edge(str(state), str(actual_nodes), label= ev)
+        else:
+            label = nx.get_edge_attributes(Obs, 'label')[(str(state),str(actual_nodes))]
+            if ev == label:
+                continue
+            Obs.remove_edge(str(state), str(actual_nodes))
+            Obs.add_edge(str(state), str(actual_nodes), label = label+','+ev)
+        if state == actual_nodes:
+            continue
+        Obs = f.iterat_observer(Obs,G,sigma_uo,mapping, actual_nodes)
+    
+    return Obs
+
