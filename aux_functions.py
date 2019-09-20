@@ -1,14 +1,13 @@
 from des import *
 from itertools import product
+from settings import *
 
 def load_input():
-        with open('input.txt', 'r') as myfile:
-            input = myfile.read()
-        with open('marked_states.txt', 'r') as myfile:
-            marked = myfile.read()
-        return parse2des(input, marked)
+        with open(PATH + 'input.txt', 'r') as myfile:
+            input = myfile.read()        
+        return parse2des(input)
 
-def parse2des(input, marked):
+def parse2des(input):
     #Parsing incidence matrix
     gg = input.split("\n\n-\n\n")
     des_list = []
@@ -208,7 +207,7 @@ def iterat_parallel(G_parallel, G1, G2, sigma_sync, actual_node):
     
     return G_parallel
 
-def iterat_observer(Obs, G, sigma_uo, mapping, actual_nodes):
+def iterat_observer(Obs, G, sigma_uo, mapping, actual_nodes, first=False):
     ev_possible = []    
     for i in actual_nodes:
         [ev_possible.append(x) for x in f.get_adjacencies_events(G, i)]
@@ -228,7 +227,9 @@ def iterat_observer(Obs, G, sigma_uo, mapping, actual_nodes):
             else:
                 if not ev in ev_obs_possible:
                     ev_obs_possible.append(ev)
-    
+    if not first:
+        node_rename = {str(actual_nodes):str(state)}
+        Obs = nx.relabel_nodes(Obs, node_rename)
     Obs = f.compute_next_obs(Obs, ev_obs_possible, G, sigma_uo, mapping, state)
     return Obs    
     

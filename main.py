@@ -1,8 +1,9 @@
 import aux_functions as f
-
+import copy
 
 aut_list = f.load_input()
-Gl = aut_list[0]
+Gl = aut_list[1]
+Gl.Observer(['a','b','c'])
 Gl.verifier(['f'], [['c'],['b']])
 
 Gd = aut_list[1]
